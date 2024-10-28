@@ -1,12 +1,11 @@
-/* Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
- * 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+// Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
+// 2.0 (the "License"); you may not use this file except in compliance with
+// the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 // Package httpserver - HTTP API endpoint
 // The httpserver subsystem provides an HTTP interface to Burrow that can be used to fetch information about the
@@ -19,7 +18,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -99,7 +97,7 @@ func (hc *Coordinator) Configure() {
 			server.TLSConfig = &tls.Config{}
 
 			if caFile != "" {
-				caCert, err := ioutil.ReadFile(caFile)
+				caCert, err := os.ReadFile(caFile)
 				if err != nil {
 					panic("cannot read TLS CA file: " + err.Error())
 				}
@@ -157,6 +155,7 @@ func (hc *Coordinator) Configure() {
 
 	// TODO: This should really have authentication protecting it
 	hc.router.DELETE("/v3/kafka/:cluster/consumer/:consumer", hc.handleConsumerDelete)
+	hc.router.DELETE("/v3/kafka/:cluster/consumer/:consumer/topic/:topic", hc.handleConsumerDelete)
 	hc.router.GET("/v3/admin/loglevel", hc.getLogLevel)
 	hc.router.POST("/v3/admin/loglevel", hc.setLogLevel)
 }

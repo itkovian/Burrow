@@ -1,12 +1,11 @@
-/* Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
- * 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+// Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
+// 2.0 (the "License"); you may not use this file except in compliance with
+// the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 package evaluator
 
@@ -324,12 +323,24 @@ func calculatePartitionStatus(offsets []*protocol.ConsumerOffset, brokerOffsets 
 			return protocol.StatusStop
 		}
 
+		// Its possible the consumer had a rewind in the interval, though it has some lag currently.
+		// We only count a rewind state against the consumer for as long as it it rewinds (and recovery) occurs. For
+		// example, the rewind could have been just a few offsets and then consumer could be back to the same offset it
+		// was committing before (this can occur with rebalances where consumers don't throw away work they are
+		// currently  doing and can commit an old offset), so don't hold that against the consumer.
+		//
+		// This has to go above the isLagAlwaysNotZero check because often a consumer will have no lag and then
+		// suddenly rewind to earliest (broker bugs are common cause of this). So there will be zero lag in part of the
+		// consumer history (so marked OK) and then when that ages out we just have the positive progress as the
+		// consumer works through the lag (again, being marked OK).
+		rewindIndex := checkIfOffsetsRewind(offsets)
+		if rewindIndex > 0 && !checkIfRewindRecovered(offsets, rewindIndex) {
+			return protocol.StatusRewind
+		}
+
 		// Now check if the lag was zero at any point, and skip the rest of the checks if this is true
 		if isLagAlwaysNotZero(offsets, allowedLag) {
 			// Check for errors, in order of severity starting with the worst. If any check comes back true, skip the rest
-			if checkIfOffsetsRewind(offsets) {
-				return protocol.StatusRewind
-			}
 			if checkIfOffsetsStalled(offsets) {
 				return protocol.StatusStall
 			}
@@ -351,10 +362,26 @@ func isLagAlwaysNotZero(offsets []*protocol.ConsumerOffset, allowedLag uint64) b
 	return true
 }
 
-// Rule 2 - If the consumer offset decreases from one interval to the next the partition is marked as a rewind (error)
-func checkIfOffsetsRewind(offsets []*protocol.ConsumerOffset) bool {
+// Rule 2 - Get the index of of the offset when the consumer offset decreases from one interval to the next.
+//
+//	-1 otherwise, indicating no rewind was found
+func checkIfOffsetsRewind(offsets []*protocol.ConsumerOffset) int {
 	for i := 1; i < len(offsets); i++ {
 		if offsets[i].Offset < offsets[i-1].Offset {
+			return i
+		}
+	}
+	return -1
+}
+
+// Rule 2 (part 2) - Its assumed the consumer had a rewind, check to see if the consumer reached the previous offset
+//
+//	from the rewind, indicating that it had recovered to the previous point and we can check the rest
+//	of the lag rules for the partition.
+func checkIfRewindRecovered(offsets []*protocol.ConsumerOffset, resetIndex int) bool {
+	previousProgress := offsets[resetIndex-1]
+	for i := resetIndex; i < len(offsets); i++ {
+		if offsets[i].Offset >= previousProgress.Offset {
 			return true
 		}
 	}
@@ -362,7 +389,8 @@ func checkIfOffsetsRewind(offsets []*protocol.ConsumerOffset) bool {
 }
 
 // Rule 3 - If the difference between now and the last offset timestamp is greater than the difference between the last
-//          and first offset timestamps, the consumer has stopped committing offsets for that partition (error)
+//
+//	and first offset timestamps, the consumer has stopped committing offsets for that partition (error)
 func checkIfOffsetsStopped(offsets []*protocol.ConsumerOffset, timeNow int64) bool {
 	firstTimestamp := offsets[0].Timestamp
 	lastTimestamp := offsets[len(offsets)-1].Timestamp
@@ -370,7 +398,8 @@ func checkIfOffsetsStopped(offsets []*protocol.ConsumerOffset, timeNow int64) bo
 }
 
 // Rule 4 - If the consumer is committing offsets that do not change, it's an error (partition is stalled)
-//          NOTE - we already checked for zero lag in Rule 1, so we know that there is currently lag for this partition
+//
+//	NOTE - we already checked for zero lag in Rule 1, so we know that there is currently lag for this partition
 func checkIfOffsetsStalled(offsets []*protocol.ConsumerOffset) bool {
 	for i := 1; i < len(offsets); i++ {
 		if offsets[i].Offset != offsets[i-1].Offset {

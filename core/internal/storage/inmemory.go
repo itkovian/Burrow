@@ -1,12 +1,11 @@
-/* Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
- * 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+// Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
+// 2.0 (the "License"); you may not use this file except in compliance with
+// the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 package storage
 
@@ -21,6 +20,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
+	"github.com/linkedin/Burrow/core/internal/httpserver"
 	"github.com/linkedin/Burrow/core/protocol"
 )
 
@@ -667,8 +667,26 @@ func (module *InMemoryStorage) deleteGroup(request *protocol.StorageRequest, req
 	}
 
 	clusterMap.consumerLock.Lock()
-	delete(clusterMap.consumer, request.Group)
+	deleteAllGroupMetrics := true
+	if group, ok := clusterMap.consumer[request.Group]; ok && request.Topic != "" {
+		delete(group.topics, request.Topic)
+		if len(group.topics) == 0 {
+			delete(clusterMap.consumer, request.Group)
+		} else {
+			// The consumer group consumes other topics, thus we need to keep its metrics
+			deleteAllGroupMetrics = false
+		}
+	} else {
+		delete(clusterMap.consumer, request.Group)
+	}
 	clusterMap.consumerLock.Unlock()
+
+	if deleteAllGroupMetrics {
+		httpserver.DeleteConsumerMetrics(request.Cluster, request.Group)
+	} else {
+		// only a specific topic was deleted and the consumer group still exists, thus we delete only a subset of the metrics
+		httpserver.DeleteConsumerTopicMetrics(request.Cluster, request.Group, request.Topic)
+	}
 
 	requestLogger.Debug("ok")
 }

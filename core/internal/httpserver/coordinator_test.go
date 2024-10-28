@@ -1,12 +1,11 @@
-/* Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
- * 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+// Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
+// 2.0 (the "License"); you may not use this file except in compliance with
+// the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 package httpserver
 
@@ -48,7 +47,7 @@ func TestHttpServer_handleAdmin(t *testing.T) {
 	coordinator := fixtureConfiguredCoordinator()
 
 	// Set up a request
-	req, err := http.NewRequest("GET", "/burrow/admin", nil)
+	req, err := http.NewRequest("GET", "/burrow/admin", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 
 	// Call the handler via httprouter
@@ -63,7 +62,7 @@ func TestHttpServer_handleReady(t *testing.T) {
 	coordinator := fixtureConfiguredCoordinator()
 
 	// Set up a request
-	req, err := http.NewRequest("GET", "/burrow/admin/ready", nil)
+	req, err := http.NewRequest("GET", "/burrow/admin/ready", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 
 	// Call the handler via httprouter, the app is not ready so we expect "STARTING" and HTTP 503
@@ -92,7 +91,7 @@ func TestHttpServer_getClusterList(t *testing.T) {
 	}()
 
 	// Set up a request
-	req, err := http.NewRequest("GET", "/v3/admin/loglevel", nil)
+	req, err := http.NewRequest("GET", "/v3/admin/loglevel", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 
 	// Call the handler via httprouter
@@ -139,7 +138,7 @@ func TestHttpServer_DefaultHandler(t *testing.T) {
 	coordinator := fixtureConfiguredCoordinator()
 
 	// Set up a request
-	req, err := http.NewRequest("GET", "/v3/no/such/uri", nil)
+	req, err := http.NewRequest("GET", "/v3/no/such/uri", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 
 	// Call the handler via httprouter

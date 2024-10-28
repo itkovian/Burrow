@@ -1,20 +1,19 @@
-/* Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
- * 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+// Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
+// 2.0 (the "License"); you may not use this file except in compliance with
+// the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 package helpers
 
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"io/ioutil"
 	"net"
+	"os"
 	"time"
 
 	"github.com/pkg/errors"
@@ -75,7 +74,7 @@ func ZookeeperConnectTLS(servers []string, sessionTimeout time.Duration, logger 
 // newTLSDialer creates a dialer with TLS configured. It will install caFile as root CA and if both certFile and keyFile are
 // set, it will add those as a certificate.
 func newTLSDialer(addr, caFile, certFile, keyFile string) (zk.Dialer, error) {
-	caCert, err := ioutil.ReadFile(caFile)
+	caCert, err := os.ReadFile(caFile)
 	if err != nil {
 		return nil, errors.New("could not read caFile: " + err.Error())
 	}
@@ -134,7 +133,8 @@ func (z *BurrowZookeeperClient) ExistsW(path string) (bool, *zk.Stat, <-chan zk.
 
 // Create makes a new ZNode at the specified path with the contents set to the data byte-slice. Flags can be provided
 // to specify that this is an ephemeral or sequence node, and an ACL must be provided. If no ACL is desired, specify
-//  zk.WorldACL(zk.PermAll)
+//
+//	zk.WorldACL(zk.PermAll)
 func (z *BurrowZookeeperClient) Create(path string, data []byte, flags int32, acl []zk.ACL) (string, error) {
 	return z.client.Create(path, data, flags, acl)
 }

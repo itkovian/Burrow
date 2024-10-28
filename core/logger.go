@@ -1,18 +1,16 @@
-/* Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
- * 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+// Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
+// 2.0 (the "License"); you may not use this file except in compliance with
+// the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 package core
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -36,7 +34,7 @@ func CheckAndCreatePidFile(filename string) bool {
 	// Check if the PID file exists
 	if _, err := os.Stat(filename); !os.IsNotExist(err) {
 		// The file exists, so read it and check if the PID specified is running
-		pidString, err := ioutil.ReadFile(filename)
+		pidString, err := os.ReadFile(filename)
 		if err != nil {
 			fmt.Printf("Cannot read PID file: %v", err)
 			return false
@@ -69,7 +67,7 @@ func CheckAndCreatePidFile(filename string) bool {
 	}
 
 	// Create a PID file, replacing any existing one (as we already checked it)
-	pidfile, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
+	pidfile, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		fmt.Printf("Cannot write PID file: %v", err)
 		return false
@@ -169,7 +167,7 @@ func OpenOutLog(filename string) *os.File {
 	}
 
 	// Redirect stdout and stderr to out file
-	logFile, _ := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_SYNC, 0644)
+	logFile, _ := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_SYNC, 0o644)
 	internalDup2(logFile.Fd(), 1)
 	internalDup2(logFile.Fd(), 2)
 	return logFile

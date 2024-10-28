@@ -1,3 +1,44 @@
+## 1.6.0
+
+- #773 - @bai - Update Go to v1.20
+- #767 - @curtiseppel - Fix metric leak
+- #765 - @ronilichtman - A few typo fixes in storage.go comments
+- #743 - @lavoiesl - Tweak build flags for internalDup2 on darwin arm64
+
+## 1.5.0
+
+- #739 - @bai - Update sarama to 1.31.1
+
+## 1.4.0
+
+- #734 - @bai - Prefer http.NoBody to nil body
+- #733 - @bai - Update Alpine image to 3.15
+- #732 - @bai - Update Go dependencies + address recent Go CVEs (1.17.6)
+- #727 - @ricky26 - Handle consumer group tombstones
+
+## 1.3.7
+
+- #723 - @bai - Update Go to 1.17.2 and bump golangci-lint
+- #722 - @bai - Revert "fix prometheus metrics leakage when nonexisting consumer removed from memory"
+- #708 - @ArickNan - fix prometheus metrics leakage when nonexisting consumer removed from memory
+- #720 - @jyates - Continue to support losely specified older Kafka versions
+- #719 - @bai - Use Go 1.17 with GitHub Actions
+- #718 - @Thiago-Dantas - Update go build version
+- #716 - @jyates - Allow rewind detection when previous zero lag
+- #715 - @bai - Update Sarama to version 1.30.0
+- #712 - @shrijeet-tesla - Expose network timeout consumer configs via client profile
+- #695 - @martianzhang - fix NPE for err & msg in kafka_client.go
+- #700 - @james-bjss - Fix to show metrics for incomplete partitions
+- #638 - @fr0stbyte - fix metric reporting
+- #690 - @bai - Update Golang to version 1.16
+- #591 - @aboutNisblee - Add allowedLag setting to cache evaluator
+- #657 - @d1egoaz - add a groups reaper to remove non existing groups
+
+## 1.3.6
+
+- #687 - @bai - Fix goreleaser github action
+- #686 - @bai - Update base alpine image from 3.12 to 3.13
+
 ## 1.3.5
 
 - #684 - @bai - Add support for Kafka 2.7.0

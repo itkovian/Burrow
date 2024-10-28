@@ -1,12 +1,11 @@
-/* Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
- * 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+// Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
+// 2.0 (the "License"); you may not use this file except in compliance with
+// the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 package cluster
 
@@ -15,11 +14,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
 	"github.com/linkedin/Burrow/core/internal/helpers"
+	"github.com/linkedin/Burrow/core/internal/httpserver"
 	"github.com/linkedin/Burrow/core/protocol"
 )
 
@@ -199,6 +199,7 @@ func (module *KafkaCluster) maybeUpdateMetadataAndDeleteTopics(client helpers.Sa
 						Cluster:     module.name,
 						Topic:       topic,
 					}
+					httpserver.DeleteTopicMetrics(module.name, topic)
 				}
 			}
 		}
@@ -335,6 +336,8 @@ func (module *KafkaCluster) reapNonExistingGroups(client helpers.SaramaClient) {
 				Group:       g,
 			}
 			helpers.TimeoutSendStorageRequest(module.App.StorageChannel, request, 1)
+
+			httpserver.DeleteConsumerMetrics(module.name, g)
 		}
 	}
 }

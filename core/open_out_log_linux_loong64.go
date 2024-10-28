@@ -1,3 +1,6 @@
+//go:build linux && loong64
+// +build linux,loong64
+
 // Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
 // 2.0 (the "License"); you may not use this file except in compliance with
 // the License. You may obtain a copy of the License at
@@ -7,20 +10,14 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
-package helpers
+package core
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-
-	"github.com/linkedin/Burrow/core/protocol"
+	"syscall"
 )
 
-func TestBurrowZookeeperClient_ImplementsZookeeperClient(t *testing.T) {
-	assert.Implements(t, (*protocol.ZookeeperClient)(nil), new(BurrowZookeeperClient))
-}
-
-func TestMockZookeeperClient_ImplementsZookeeperClient(t *testing.T) {
-	assert.Implements(t, (*protocol.ZookeeperClient)(nil), new(MockZookeeperClient))
+// linux_loong64 doesn't have syscall.Dup2, so use
+// the nearly identical syscall.Dup3 instead
+func internalDup2(oldfd uintptr, newfd uintptr) error {
+	return syscall.Dup3(int(oldfd), int(newfd), 0)
 }

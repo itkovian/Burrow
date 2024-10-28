@@ -1,12 +1,11 @@
-/* Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
- * 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+// Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
+// 2.0 (the "License"); you may not use this file except in compliance with
+// the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 package consumer
 
@@ -18,11 +17,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
 	"github.com/linkedin/Burrow/core/internal/helpers"
+	"github.com/linkedin/Burrow/core/internal/httpserver"
 	"github.com/linkedin/Burrow/core/protocol"
 )
 
@@ -242,6 +242,9 @@ func (module *KafkaClient) partitionConsumer(consumer sarama.PartitionConsumer, 
 	for {
 		select {
 		case msg := <-consumer.Messages():
+			if msg == nil {
+				continue
+			}
 			if module.reportedConsumerGroup != "" {
 				burrowOffset := &protocol.StorageRequest{
 					RequestType: protocol.StorageSetConsumerOffset,
@@ -266,6 +269,9 @@ func (module *KafkaClient) partitionConsumer(consumer sarama.PartitionConsumer, 
 				return
 			}
 		case err := <-consumer.Errors():
+			if err == nil {
+				continue
+			}
 			module.Log.Error("consume error",
 				zap.String("topic", err.Topic),
 				zap.Int32("partition", err.Partition),
@@ -363,12 +369,6 @@ func (module *KafkaClient) processConsumerOffsetsMessage(msg *sarama.ConsumerMes
 		zap.Int64("offset_offset", msg.Offset),
 	)
 
-	if len(msg.Value) == 0 {
-		// Tombstone message - we don't handle them for now
-		logger.Debug("dropped tombstone")
-		return
-	}
-
 	var keyver int16
 	keyBuffer := bytes.NewBuffer(msg.Key)
 	err := binary.Read(keyBuffer, binary.BigEndian, &keyver)
@@ -446,6 +446,12 @@ func (module *KafkaClient) decodeKeyAndOffset(offsetOrder int64, keyBuffer *byte
 		return
 	}
 
+	if len(value) == 0 {
+		// Tombstone message - we don't handle them for now
+		logger.Debug("dropped tombstone")
+		return
+	}
+
 	var valueVersion int16
 	valueBuffer := bytes.NewBuffer(value)
 	err := binary.Read(valueBuffer, binary.BigEndian, &valueVersion)
@@ -504,6 +510,20 @@ func (module *KafkaClient) decodeGroupMetadata(keyBuffer *bytes.Buffer, value []
 			zap.String("message_type", "metadata"),
 			zap.String("reason", "group"),
 		)
+		return
+	}
+
+	if len(value) == 0 {
+		// Tombstone message - group deleted
+		logger.Debug("removing consumer group due to tombstone")
+		deleteMessage := &protocol.StorageRequest{
+			RequestType: protocol.StorageSetDeleteGroup,
+			Cluster:     module.cluster,
+			Group:       group,
+		}
+		helpers.TimeoutSendStorageRequest(module.App.StorageChannel, deleteMessage, 1)
+
+		httpserver.DeleteConsumerMetrics(module.name, group)
 		return
 	}
 

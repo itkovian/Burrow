@@ -1,12 +1,11 @@
-/* Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
- * 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+// Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
+// 2.0 (the "License"); you may not use this file except in compliance with
+// the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 package httpserver
 
@@ -38,7 +37,7 @@ func TestHttpServer_configMain(t *testing.T) {
 	setupConfiguration()
 
 	// Set up a request
-	req, err := http.NewRequest("GET", "/v3/config", nil)
+	req, err := http.NewRequest("GET", "/v3/config", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 
 	// Call the handler via httprouter
@@ -60,7 +59,7 @@ func TestHttpServer_configStorageList(t *testing.T) {
 	setupConfiguration()
 
 	// Set up a request
-	req, err := http.NewRequest("GET", "/v3/config/storage", nil)
+	req, err := http.NewRequest("GET", "/v3/config/storage", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 
 	// Call the handler via httprouter
@@ -84,7 +83,7 @@ func TestHttpServer_configConsumerList(t *testing.T) {
 	setupConfiguration()
 
 	// Set up a request
-	req, err := http.NewRequest("GET", "/v3/config/consumer", nil)
+	req, err := http.NewRequest("GET", "/v3/config/consumer", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 
 	// Call the handler via httprouter
@@ -108,7 +107,7 @@ func TestHttpServer_configClusterList(t *testing.T) {
 	setupConfiguration()
 
 	// Set up a request
-	req, err := http.NewRequest("GET", "/v3/config/cluster", nil)
+	req, err := http.NewRequest("GET", "/v3/config/cluster", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 
 	// Call the handler via httprouter
@@ -132,7 +131,7 @@ func TestHttpServer_configEvaluatorList(t *testing.T) {
 	setupConfiguration()
 
 	// Set up a request
-	req, err := http.NewRequest("GET", "/v3/config/evaluator", nil)
+	req, err := http.NewRequest("GET", "/v3/config/evaluator", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 
 	// Call the handler via httprouter
@@ -156,7 +155,7 @@ func TestHttpServer_configNotifierList(t *testing.T) {
 	setupConfiguration()
 
 	// Set up a request
-	req, err := http.NewRequest("GET", "/v3/config/notifier", nil)
+	req, err := http.NewRequest("GET", "/v3/config/notifier", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 
 	// Call the handler via httprouter
@@ -180,7 +179,7 @@ func TestHttpServer_configStorageDetail(t *testing.T) {
 	setupConfiguration()
 
 	// Set up a request
-	req, err := http.NewRequest("GET", "/v3/config/storage/teststorage", nil)
+	req, err := http.NewRequest("GET", "/v3/config/storage/teststorage", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 
 	// Call the handler via httprouter
@@ -206,7 +205,7 @@ func TestHttpServer_configStorageDetail(t *testing.T) {
 	assert.Equalf(t, "inmemory", resp.Module.ClassName, "Expected ClassName to be immemory, not %v", resp.Module.ClassName)
 
 	// Call again for a 404
-	req, err = http.NewRequest("GET", "/v3/config/storage/nomodule", nil)
+	req, err = http.NewRequest("GET", "/v3/config/storage/nomodule", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 	rr = httptest.NewRecorder()
 	coordinator.router.ServeHTTP(rr, req)
@@ -218,7 +217,7 @@ func TestHttpServer_configConsumerDetail(t *testing.T) {
 	setupConfiguration()
 
 	// Set up a request
-	req, err := http.NewRequest("GET", "/v3/config/consumer/testconsumer", nil)
+	req, err := http.NewRequest("GET", "/v3/config/consumer/testconsumer", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 
 	// Call the handler via httprouter
@@ -244,7 +243,7 @@ func TestHttpServer_configConsumerDetail(t *testing.T) {
 	assert.Equalf(t, "kafka_zk", resp.Module.ClassName, "Expected ClassName to be kafka_zk, not %v", resp.Module.ClassName)
 
 	// Call again for a 404
-	req, err = http.NewRequest("GET", "/v3/config/consumer/nomodule", nil)
+	req, err = http.NewRequest("GET", "/v3/config/consumer/nomodule", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 	rr = httptest.NewRecorder()
 	coordinator.router.ServeHTTP(rr, req)
@@ -256,7 +255,7 @@ func TestHttpServer_configEvaluatorDetail(t *testing.T) {
 	setupConfiguration()
 
 	// Set up a request
-	req, err := http.NewRequest("GET", "/v3/config/evaluator/testevaluator", nil)
+	req, err := http.NewRequest("GET", "/v3/config/evaluator/testevaluator", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 
 	// Call the handler via httprouter
@@ -282,7 +281,7 @@ func TestHttpServer_configEvaluatorDetail(t *testing.T) {
 	assert.Equalf(t, "caching", resp.Module.ClassName, "Expected ClassName to be caching, not %v", resp.Module.ClassName)
 
 	// Call again for a 404
-	req, err = http.NewRequest("GET", "/v3/config/evaluator/nomodule", nil)
+	req, err = http.NewRequest("GET", "/v3/config/evaluator/nomodule", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 	rr = httptest.NewRecorder()
 	coordinator.router.ServeHTTP(rr, req)
@@ -294,7 +293,7 @@ func TestHttpServer_configNotifierDetail(t *testing.T) {
 	setupConfiguration()
 
 	// Set up a request
-	req, err := http.NewRequest("GET", "/v3/config/notifier/testnotifier", nil)
+	req, err := http.NewRequest("GET", "/v3/config/notifier/testnotifier", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 
 	// Call the handler via httprouter
@@ -320,7 +319,7 @@ func TestHttpServer_configNotifierDetail(t *testing.T) {
 	assert.Equalf(t, "null", resp.Module.ClassName, "Expected ClassName to be null, not %v", resp.Module.ClassName)
 
 	// Call again for a 404
-	req, err = http.NewRequest("GET", "/v3/config/notifier/nomodule", nil)
+	req, err = http.NewRequest("GET", "/v3/config/notifier/nomodule", http.NoBody)
 	assert.NoError(t, err, "Expected request setup to return no error")
 	rr = httptest.NewRecorder()
 	coordinator.router.ServeHTTP(rr, req)

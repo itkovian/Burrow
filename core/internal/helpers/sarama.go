@@ -1,69 +1,60 @@
-/* Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
- * 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+// Copyright 2017 LinkedIn Corp. Licensed under the Apache License, Version
+// 2.0 (the "License"); you may not use this file except in compliance with
+// the License. You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 package helpers
 
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"io/ioutil"
+	"os"
+	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/mock"
 )
 
-var kafkaVersions = map[string]sarama.KafkaVersion{
-	"":         sarama.V0_10_2_0,
-	"0.8.0":    sarama.V0_8_2_0,
-	"0.8.1":    sarama.V0_8_2_1,
-	"0.8.2":    sarama.V0_8_2_2,
-	"0.8":      sarama.V0_8_2_0,
-	"0.9.0.0":  sarama.V0_9_0_0,
-	"0.9.0.1":  sarama.V0_9_0_1,
-	"0.9.0":    sarama.V0_9_0_0,
-	"0.9":      sarama.V0_9_0_0,
-	"0.10.0.0": sarama.V0_10_0_0,
-	"0.10.0.1": sarama.V0_10_0_1,
-	"0.10.0":   sarama.V0_10_0_0,
-	"0.10.1.0": sarama.V0_10_1_0,
-	"0.10.1":   sarama.V0_10_1_0,
-	"0.10.2.0": sarama.V0_10_2_0,
-	"0.10.2.1": sarama.V0_10_2_0,
-	"0.10.2":   sarama.V0_10_2_0,
-	"0.10":     sarama.V0_10_0_0,
-	"0.11.0.1": sarama.V0_11_0_0,
-	"0.11.0.2": sarama.V0_11_0_0,
-	"0.11.0":   sarama.V0_11_0_0,
-	"1.0.0":    sarama.V1_0_0_0,
-	"1.1.0":    sarama.V1_1_0_0,
-	"1.1.1":    sarama.V1_1_0_0,
-	"2.0.0":    sarama.V2_0_0_0,
-	"2.0.1":    sarama.V2_0_0_0,
-	"2.1.0":    sarama.V2_1_0_0,
-	"2.2.0":    sarama.V2_2_0_0,
-	"2.2.1":    sarama.V2_2_0_0,
-	"2.3.0":    sarama.V2_3_0_0,
-	"2.4.0":    sarama.V2_4_0_0,
-	"2.5.0":    sarama.V2_5_0_0,
-	"2.6.0":    sarama.V2_6_0_0,
-	"2.7.0":    sarama.V2_7_0_0,
+// Since 1.X Kafka has moved to semver, so those have a consistent format. For earlier versions we support formats:
+// * major.minor.very_minor.patch
+// * major.minor.patch
+// * major.minor
+// However, Sarama does not support anything but the "major.minor.very_minor.patch" flavor of these older versions,
+// so we keep these other mappings here as a fallback to not break existing configurations
+var legacyKafkaVersionFallback = map[string]sarama.KafkaVersion{
+	"": sarama.V0_10_2_0,
+	// Only support back as far as 0.8.2, even if they say 0.8.[0,1], we know they actual mean the last version index
+	"0.8.0":  sarama.V0_8_2_0,
+	"0.8.1":  sarama.V0_8_2_1,
+	"0.8.2":  sarama.V0_8_2_2,
+	"0.8":    sarama.V0_8_2_0,
+	"0.9.0":  sarama.V0_9_0_0,
+	"0.9":    sarama.V0_9_0_0,
+	"0.10.0": sarama.V0_10_0_0,
+	"0.10.1": sarama.V0_10_1_0,
+	"0.10.2": sarama.V0_10_2_0,
+	"0.10":   sarama.V0_10_0_0,
+	"0.11.0": sarama.V0_11_0_0,
+	"0.11":   sarama.V0_11_0_0,
 }
 
 func parseKafkaVersion(kafkaVersion string) sarama.KafkaVersion {
-	version, ok := kafkaVersions[kafkaVersion]
-	if !ok {
-		panic("Unknown Kafka Version: " + kafkaVersion)
+	version, err := sarama.ParseKafkaVersion(kafkaVersion)
+	if err != nil {
+		// try find the version in the legacy matching
+		version1, ok := legacyKafkaVersionFallback[kafkaVersion]
+		if !ok {
+			panic("Unknown Kafka Version: " + kafkaVersion)
+		}
+		version = version1
 	}
 
 	return version
@@ -81,7 +72,7 @@ func GetSaramaConfigFromClientProfile(profileName string) *sarama.Config {
 	}
 
 	viper.SetDefault(configRoot+".client-id", "burrow-lagchecker")
-	viper.SetDefault(configRoot+".kafka-version", "0.8")
+	viper.SetDefault(configRoot+".kafka-version", "2.8.0")
 
 	saramaConfig := sarama.NewConfig()
 	saramaConfig.ClientID = viper.GetString(configRoot + ".client-id")
@@ -100,7 +91,7 @@ func GetSaramaConfigFromClientProfile(profileName string) *sarama.Config {
 		if caFile == "" {
 			saramaConfig.Net.TLS.Config = &tls.Config{}
 		} else {
-			caCert, err := ioutil.ReadFile(caFile)
+			caCert, err := os.ReadFile(caFile)
 			if err != nil {
 				panic("cannot read TLS CA file: " + err.Error())
 			}
@@ -141,6 +132,16 @@ func GetSaramaConfigFromClientProfile(profileName string) *sarama.Config {
 		saramaConfig.Net.SASL.Handshake = viper.GetBool("sasl." + saslName + ".handshake-first")
 		saramaConfig.Net.SASL.User = viper.GetString("sasl." + saslName + ".username")
 		saramaConfig.Net.SASL.Password = viper.GetString("sasl." + saslName + ".password")
+	}
+
+	// Timeout for the initial connection
+	if viper.IsSet(configRoot + ".dial-timeout") {
+		saramaConfig.Net.DialTimeout = time.Duration(viper.GetInt(configRoot+".dial-timeout")) * time.Second
+	}
+
+	// Timeout for a request's response
+	if viper.IsSet(configRoot + ".read-timeout") {
+		saramaConfig.Net.ReadTimeout = time.Duration(viper.GetInt(configRoot+".read-timeout")) * time.Second
 	}
 
 	return saramaConfig
@@ -184,7 +185,7 @@ type SaramaClient interface {
 	// GetOffset queries the cluster to get the most recent available offset at the given time (in milliseconds) on the
 	// topic/partition combination. Time should be OffsetOldest for the earliest available offset, OffsetNewest for the
 	// offset of the message that will be produced next, or a time.
-	GetOffset(topic string, partitionID int32, time int64) (int64, error)
+	GetOffset(topic string, partitionID int32, timestamp int64) (int64, error)
 
 	// Coordinator returns the coordinating broker for a consumer group. It will return a locally cached value if it's
 	// available. You can call RefreshCoordinator to update the cached value. This function only works on Kafka 0.8.2 and
@@ -281,8 +282,8 @@ func (c *BurrowSaramaClient) RefreshMetadata(topics ...string) error {
 // GetOffset queries the cluster to get the most recent available offset at the given time (in milliseconds) on the
 // topic/partition combination. Time should be OffsetOldest for the earliest available offset, OffsetNewest for the
 // offset of the message that will be produced next, or a time.
-func (c *BurrowSaramaClient) GetOffset(topic string, partitionID int32, time int64) (int64, error) {
-	return c.Client.GetOffset(topic, partitionID, time)
+func (c *BurrowSaramaClient) GetOffset(topic string, partitionID int32, timestamp int64) (int64, error) {
+	return c.Client.GetOffset(topic, partitionID, timestamp)
 }
 
 // Coordinator returns the coordinating broker for a consumer group. It will return a locally cached value if it's
@@ -431,8 +432,8 @@ func (m *MockSaramaClient) RefreshMetadata(topics ...string) error {
 }
 
 // GetOffset mocks SaramaClient.GetOffset
-func (m *MockSaramaClient) GetOffset(topic string, partitionID int32, time int64) (int64, error) {
-	args := m.Called(topic, partitionID, time)
+func (m *MockSaramaClient) GetOffset(topic string, partitionID int32, timestamp int64) (int64, error) {
+	args := m.Called(topic, partitionID, timestamp)
 	return args.Get(0).(int64), args.Error(1)
 }
 
@@ -531,6 +532,26 @@ func (m *MockSaramaConsumer) Close() error {
 	return args.Error(0)
 }
 
+// Pause mocks sarama.Consumer.Pause
+func (m *MockSaramaConsumer) Pause(topicPartitions map[string][]int32) {
+	m.Called()
+}
+
+// Resume mocks sarama.Consumer.Resume
+func (m *MockSaramaConsumer) Resume(topicPartitions map[string][]int32) {
+	m.Called()
+}
+
+// PauseAll mocks sarama.Consumer.PauseAll
+func (m *MockSaramaConsumer) PauseAll() {
+	m.Called()
+}
+
+// ResumeAll mocks sarama.Consumer.ResumeAll
+func (m *MockSaramaConsumer) ResumeAll() {
+	m.Called()
+}
+
 // MockSaramaPartitionConsumer is a mock of sarama.PartitionConsumer. It is used in tests by multiple packages. It
 // should never be used in the normal code.
 type MockSaramaPartitionConsumer struct {
@@ -564,6 +585,22 @@ func (m *MockSaramaPartitionConsumer) Errors() <-chan *sarama.ConsumerError {
 func (m *MockSaramaPartitionConsumer) HighWaterMarkOffset() int64 {
 	args := m.Called()
 	return args.Get(0).(int64)
+}
+
+// IsPaused mocks sarama.PartitionConsumer.IsPaused
+func (m *MockSaramaPartitionConsumer) IsPaused() bool {
+	args := m.Called()
+	return args.Get(0).(bool)
+}
+
+// Pause mocks sarama.PartitionConsumer.Pause
+func (m *MockSaramaPartitionConsumer) Pause() {
+	m.Called()
+}
+
+// Resume mocks sarama.PartitionConsumer.Resume
+func (m *MockSaramaPartitionConsumer) Resume() {
+	m.Called()
 }
 
 func newSaramaZapLogger(logger *zap.Logger) sarama.StdLogger {
